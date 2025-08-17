@@ -1,0 +1,37 @@
+{
+  "name": "coursemos_be",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "chungminjae",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pataegonia/CourseMos_BE.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pataegonia/CourseMos_BE/issues"
+  },
+  "homepage": "https://github.com/pataegonia/CourseMos_BE#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
+    "joi": "^18.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
