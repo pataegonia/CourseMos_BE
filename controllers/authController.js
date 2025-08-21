@@ -12,7 +12,8 @@ const SignInSchema = Joi.object({
   name: Joi.string().min(1).max(50).required(),
   birthday: Joi.string().isoDate().required(),
   partnerBirthday: Joi.string().isoDate().required(),
-  startDate: Joi.string().isoDate().required()
+  startDate: Joi.string().isoDate().required(),
+  profilePhoto: Joi.string().uri().optional()
 });
 
 const LoginSchema = Joi.object({
@@ -25,7 +26,7 @@ export async function signIn(req, res) {
   const { error, value } = SignInSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.message });
 
-  const { email, password, name, birthday, partnerBirthday, startDate } = value;
+  const { email, password, name, birthday, partnerBirthday, startDate, profilePhoto } = value;
 
   // 1) Firebase Auth 계정 생성
   const signUpUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`;
@@ -40,6 +41,30 @@ export async function signIn(req, res) {
   }
 
   const { localId: uid, idToken } = data;
+
+   if (photoURL) {
+    const updateUrl = `https://identitytoolkit.googleapis.com/v1/accounts:update?key=${API_KEY}`;
+    const ur = await fetch(updateUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idToken,
+        photoUrl: photoURL,
+        // displayName: name,         // 필요 시 주석 해제
+        returnSecureToken: true
+      })
+    });
+    const udata = await ur.json();
+    if (!ur.ok) {
+      // 프로필 업데이트에 실패해도 회원가입 자체는 성공이므로 경고만 반환 가능
+      // 필요 시 rollback 로직을 넣을 수도 있음
+      return res.status(201).json({
+        token: idToken,
+        user: { uid, email, name, birthday, partnerBirthday, startDate, photoURL: null },
+        warning: `프로필 사진 업데이트 실패: ${udata.error?.message || 'unknown error'}`
+      });
+    }
+  }
 
   // 2) 프로필 저장
   await usersCol.doc(uid).set({
