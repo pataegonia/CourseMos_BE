@@ -1,7 +1,6 @@
 {
   "name": "coursemos_be",
   "version": "1.0.0",
-  "type": "module",
   "description": "chungminjae",
   "main": "app.js",
   "scripts": {
