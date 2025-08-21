@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Request
-from langchain_logic import get_place_recommendations
+from fastapi import FastAPI
+from pydantic import BaseModel
 from fastapi.responses import JSONResponse
+from langchain_logic import get_place_recommendations
 import os
 from dotenv import load_dotenv
 
@@ -10,15 +11,14 @@ load_dotenv(env_path)
 
 app = FastAPI()
 
+class RecommendRequest(BaseModel):
+    location: str
+    date: str
+    time: str
 
 @app.post('/recommend')
-async def recommend(request: Request):
-    data = await request.json()
-    location = data.get('location')
-    date = data.get('date')
-    time = data.get('time')
-    # LangChain 로직 호출
-    result = get_place_recommendations(location, date, time)
+async def recommend(body: RecommendRequest):
+    result = get_place_recommendations(body.location, body.date, body.time)
     return JSONResponse(content=result)
 
 # FastAPI 서버 실행: uvicorn app:app --host 0.0.0.0 --port 5000
