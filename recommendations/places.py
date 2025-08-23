@@ -1,4 +1,5 @@
 import os
+import requests
 import json
 import re
 import time
@@ -59,7 +60,38 @@ FORBIDDEN_SUFFIXES = ["동", "읍", "면", "리", "거리", "타운", "스퀘어
 CATEGORY_ENUM = ["카페", "식당", "박물관", "공원", "야경", "바", "액티비티", "기타"]
 TIME_ENUM = ["아침", "오후", "저녁", "밤"]
 
+###############################################
 # 품질 검증 함수
+###############################################
+###############################################
+# Google Places API를 활용한 장소 사진 가져오기
+###############################################
+def get_photo_url(place_name: str, api_key: str) -> str:
+    """
+    Google Places API를 통해 장소명으로 대표 사진 URL을 반환합니다.
+    - place_name: 장소명(예: '카페 드 파리')
+    - api_key: 구글 API 키
+    """
+    search_url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+    params = {
+        "input": place_name,
+        "inputtype": "textquery",
+        "fields": "photos,place_id",
+        "key": api_key
+    }
+    try:
+        resp = requests.get(search_url, params=params, timeout=3)
+        data = resp.json()
+        print(f"[Google API 응답] {place_name}: {json.dumps(data, ensure_ascii=False)}")  # 전체 응답 출력
+        candidates = data.get("candidates")
+        if candidates and "photos" in candidates[0]:
+            photo_ref = candidates[0]["photos"][0]["photo_reference"]
+            # 실제 사진 URL 생성
+            photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={api_key}"
+            return photo_url
+    except Exception as e:
+        print(f"[사진 가져오기 실패] {place_name}: {e}")
+    return ""
 
 def validate_course_schema(data: Dict[str, Any]) -> bool:
     # 아주 간단한 한글 기준 품질 검사
@@ -182,6 +214,7 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
     max_retries = 3
     backoff = [0.8, 1.6, 3.2]
     last_error = None
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY", "")
     for attempt in range(max_retries):
         try:
             response = client.chat.completions.create(
@@ -202,7 +235,12 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
                 result = json.loads(content)
             except Exception:
                 result = fallback_parse(content)
+            # 품질 검증 통과 시 각 장소별 사진 추가
             if result and validate_course_schema(result):
+                for course in result.get("courses", []):
+                    for stop in course.get("stops", []):
+                        # Google Places API로 대표 사진 URL 추가
+                        stop["photo_url"] = get_photo_url(stop["name"], api_key)
                 return result
             else:
                 last_error = f"스키마 미스매치: {content[:200]}"
@@ -210,7 +248,7 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
             last_error = str(e)
         if attempt < max_retries - 1:
             time.sleep(backoff[attempt])
-    # 최종 실패 시
+    # 최종 실패 시 (사진 없음)
     return {
         "courses": [
             {
@@ -221,8 +259,9 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
                         "name": "파싱 실패",
                         "desc": str(last_error),
                         "typical_duration_min": 0,
-                        "suggested_time_of_day": "morning",
-                        "category": "other"
+                        "suggested_time_of_day": "아침",
+                        "category": "기타",
+                        "photo_url": ""
                     }
                 ]
             }
