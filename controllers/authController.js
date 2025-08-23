@@ -42,42 +42,52 @@ export async function signIn(req, res) {
 
   const { localId: uid, idToken } = data;
 
-   if (photoURL) {
+  // 1-1) (옵션) 프로필 사진을 Auth에 반영
+  let savedPhotoURL = null;
+  if (profilePhoto) {
     const updateUrl = `https://identitytoolkit.googleapis.com/v1/accounts:update?key=${API_KEY}`;
     const ur = await fetch(updateUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         idToken,
-        photoUrl: photoURL,
-        // displayName: name,         // 필요 시 주석 해제
+        photoUrl: profilePhoto,          // ✅ 요청 키는 photoUrl
         returnSecureToken: true
       })
     });
     const udata = await ur.json();
     if (!ur.ok) {
-      // 프로필 업데이트에 실패해도 회원가입 자체는 성공이므로 경고만 반환 가능
-      // 필요 시 rollback 로직을 넣을 수도 있음
+      // 사진 업데이트만 실패해도 가입은 성공
       return res.status(201).json({
         token: idToken,
         user: { uid, email, name, birthday, partnerBirthday, startDate, photoURL: null },
         warning: `프로필 사진 업데이트 실패: ${udata.error?.message || 'unknown error'}`
       });
     }
+    // 성공 시 반영
+    savedPhotoURL = udata.photoUrl ?? profilePhoto;
   }
 
-  // 2) 프로필 저장
+  // 2) Firestore 프로필 저장
   await usersCol.doc(uid).set({
-    uid, email, name, birthday, partnerBirthday, startDate,
-    createdAt: new Date(), updatedAt: new Date()
+    uid,
+    email,
+    name,
+    birthday,
+    partnerBirthday,
+    startDate,
+    photoURL: savedPhotoURL,            // ✅ 저장
+    createdAt: new Date(),
+    updatedAt: new Date()
   });
 
-  // 3) 토큰 반환
+  // 3) 토큰 + 사용자 정보 반환
   return res.status(201).json({
     token: idToken,
-    user: { uid, email, name, birthday, partnerBirthday, startDate }
+    user: { uid, email, name, birthday, partnerBirthday, startDate, photoURL: savedPhotoURL }
   });
 }
+
 
 /** 로그인: 이메일/비번으로 ID 토큰 발급 */
 export async function login(req, res) {
