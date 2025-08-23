@@ -3,8 +3,8 @@ import os, httpx
 from fastapi import HTTPException
 from dotenv import load_dotenv
 
-# 상위 폴더 .env 로드
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+# 루트 폴더 .env 로드
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 
 NAVER_API_KEY_ID = os.getenv("NAVER_MAPS_CLIENT_ID")
 NAVER_API_KEY = os.getenv("NAVER_MAPS_CLIENT_SECRET")

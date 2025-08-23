@@ -103,7 +103,7 @@ async def fetch_vilage_fcst(nx: int, ny: int, yyyymmdd: str, fcst_time: str) -> 
     except KeyError:
         raise HTTPException(502, "기상청 응답 파싱 실패")
 
-    bucket = {"TMP": None, "SKY": None, "PTY": None}
+    bucket: Dict[str, Optional[str]] = {"TMP": None, "SKY": None, "PTY": None}
     for it in items:
         if it.get("fcstDate") == yyyymmdd and it.get("fcstTime") == fcst_time:
             cat = it.get("category")

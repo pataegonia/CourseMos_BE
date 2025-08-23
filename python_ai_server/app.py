@@ -6,8 +6,8 @@ from fastapi.responses import JSONResponse
 from recommendations.places import get_place_recommendations
 import os
 from dotenv import load_dotenv
-from geocoding_naver import geocode_naver
-from weather_kma import latlon_to_grid, fetch_vilage_fcst, map_condition, nearest_fcst_time
+from python_ai_server.geocoding_naver import geocode_naver
+from python_ai_server.weather_kma import latlon_to_grid, fetch_vilage_fcst, map_condition, nearest_fcst_time
 
 
 # 프로젝트 루트의 .env 파일을 명시적으로 로드
