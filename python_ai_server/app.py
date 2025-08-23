@@ -4,14 +4,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
-from recommendations.places import get_place_recommendations
+from python_ai_server.recommendations.places import get_place_recommendations
 import os
 from dotenv import load_dotenv
-from geocoding_vworld import geocode_vworld
-from weather_kma import latlon_to_grid, fetch_vilage_fcst, map_condition, nearest_fcst_time
-from langchain_logic import get_place_recommendations
-from weather_provider import fetch_simple_weather  # ← 추가
-from weather_kma import latlon_to_grid, nearest_fcst_time  # 격자/시간만 사용
+from python_ai_server.geocoding_vworld import geocode_vworld
+from python_ai_server.weather_kma import latlon_to_grid, fetch_vilage_fcst, map_condition, nearest_fcst_time
+from python_ai_server.langchain_logic import get_place_recommendations
+from python_ai_server.weather_provider import fetch_simple_weather
+from python_ai_server.weather_kma import latlon_to_grid, nearest_fcst_time  # 격자/시간만 사용
 
 # 프로젝트 루트의 .env 파일을 명시적으로 로드
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
@@ -69,5 +69,5 @@ async def recommend(body: RecommendRequest):
         weather_text = "날씨 정보 없음"
 
     # 5) 추천 호출
-    result = get_place_recommendations(body.location, body.date, body.time, weather_text=weather_text)
+    result = get_place_recommendations(body.location, body.date, body.time, weather_text=weather_text)  # Ensure weather_text is always passed
     return JSONResponse(content=result)
