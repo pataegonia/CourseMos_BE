@@ -2,5 +2,6 @@
 !/.env
 node_modules/
 .env
-firebase-service-account.json__pycache__/
+firebase-service-account.json
+__pycache__/
 *.pyc
