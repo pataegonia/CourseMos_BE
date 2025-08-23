@@ -1,6 +1,5 @@
+// config/firebase.js (Server-side only: Admin SDK)
 import admin from 'firebase-admin';
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import fs from 'fs';
 
 let credential;
@@ -11,25 +10,19 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   credential = admin.credential.applicationDefault();
 }
 
-admin.initializeApp({
-  credential,
-  databaseURL: process.env.FIREBASE_DB_URL || undefined,
-});
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential,
+    // RTDB를 실제로 쓸 때만 유지
+    databaseURL: process.env.FIREBASE_DB_URL || undefined,
+    // ✅ 버킷 이름을 확실히 주입
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  });
+}
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAYSBOZRZOJIwGfodxIrXzfmky6quyNY-w",
-  authDomain: "chungminjae-49bba.firebaseapp.com",
-  projectId: "chungminjae-49bba",
-  storageBucket: "chungminjae-49bba.firebasestorage.app",
-  messagingSenderId: "201228656510",
-  appId: "1:201228656510:web:83943526707bd6be5a5d2f",
-  measurementId: "G-L7GWQGL0Y4"
-};
-
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-export const firestore = admin.firestore();
 export const auth = admin.auth();
+export const firestore = admin.firestore();
+// 기본 버킷 핸들 (위에서 storageBucket을 지정했으니 이름 생략 가능)
 export const bucket = admin.storage().bucket();
+
 export default admin;
