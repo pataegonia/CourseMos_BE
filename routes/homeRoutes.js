@@ -5,6 +5,6 @@ import { getHome } from '../controllers/homeController.js';
 const router = Router();
 
 // GET /api/home
-router.get('/home', verifyFirebaseIdToken, getHome);
+router.get('/', verifyFirebaseIdToken, getHome);
 
 export default router;

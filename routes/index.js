@@ -10,8 +10,8 @@ const router = Router();
 router.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
 router.use('/user', authRoute);
 router.use('/ai', aiRoutes);
-router.use('/user/upload', uploadRoutes);
+router.use('/user', uploadRoutes);
 router.use('/home', homeRoutes);
-router.use('/profile', profileRoutes);
+router.use('/mypage', profileRoutes);
 
 export default router;
