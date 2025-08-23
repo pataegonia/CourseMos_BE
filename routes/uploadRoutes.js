@@ -7,6 +7,6 @@ const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB
 
 // 인증 필요, multipart/form-data 로 파일 전송 (field name = "file")
-router.post('/user/uploadPhoto', verifyFirebaseIdToken, upload.single('file'), uploadProfilePhoto);
+router.post('/uploadPhoto', verifyFirebaseIdToken, upload.single('file'), uploadProfilePhoto);
 
 export default router;
