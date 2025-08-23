@@ -3,6 +3,7 @@ import json
 import os
 
 def get_place_recommendations(location=None, date=None, time=None, weather_text: str = "날씨 정보 없음"):
+    print(weather_text)
     # 테스트용: 인자가 없으면 example_input.json에서 로드
     if location is None or date is None or time is None:
         example_path = os.path.join(os.path.dirname(__file__), "examples", "example_input.json")
