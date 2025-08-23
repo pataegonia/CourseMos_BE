@@ -1,4 +1,4 @@
-# 추천/날씨 완전 통합 버전
+# 추천/날씨 통합
 from recommendations.places import get_place_recommendations
 from recommendations.weather import get_weather
 

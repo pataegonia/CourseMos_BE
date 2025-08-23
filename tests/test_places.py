@@ -1,4 +1,5 @@
 import os
+<<<<<<< HEAD
 import sys
 import pytest
 import json
@@ -6,6 +7,15 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from recommendations.places import get_place_recommendations, validate_course_schema, fallback_parse
+=======
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+import sys
+import pytest
+import json
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from python_ai_server.recommendations.places import get_place_recommendations, validate_course_schema, fallback_parse
+>>>>>>> kakao
 
 def test_schema_valid():
     result = get_place_recommendations("서울특별시 강남구 역삼동", "2025-08-23", "13:00")
@@ -40,7 +50,11 @@ def test_forbidden_suffix():
     assert not validate_course_schema(bad)
 
 def test_example_input_load():
+<<<<<<< HEAD
     from recommendations.places import load_example_input
+=======
+    from python_ai_server.recommendations.places import load_example_input
+>>>>>>> kakao
     example = load_example_input()
     assert isinstance(example, dict)
     assert "location" in example and "date" in example and "time" in example
