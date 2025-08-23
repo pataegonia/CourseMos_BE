@@ -12,11 +12,15 @@ def get_place_recommendations(location=None, date=None, time=None):
         date = example.get("date")
         time = example.get("time")
 
+    # location, date, time이 항상 값이 있으므로 아래에서 바로 prompt 정의
     prompt = f"""
     사용자의 현재 위치: {location}
     날짜: {date}
     현재 시간: {time}
-    위 정보를 바탕으로 추천 장소 리스트와 각 장소별 설명을 아래와 같은 JSON 형식으로 반환해줘. 무슨동 이런게 아니라 구체적인 장소의 이름.
+    위 정보를 바탕으로 네이버 지도에서 검색하면 바로 나오는 구체적인 장소(예: 카페, 음식점, 공원, 박물관 등)만 5개 추천해줘.
+    장소는 '용인시 서천동'처럼 지역명이나 동 이름이 아니라, 실제로 방문할 수 있는 하나의 공간(예: 스타벅스 강남역점, 한강공원, 국립중앙박물관 등)이어야 해.
+    모든 답변은 반드시 한국어로 작성해줘.
+    아래와 같은 JSON 형식으로만 반환해줘. (설명도 구체적으로)
     [
       {{"name": "장소명", "desc": "설명"}},
       ...
