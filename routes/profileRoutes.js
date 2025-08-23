@@ -5,6 +5,6 @@ import { getMyPage } from '../controllers/profileController.js';
 const router = Router();
 
 // GET /api/mypage
-router.get('/mypage', verifyFirebaseIdToken, getMyPage);
+router.get('/', verifyFirebaseIdToken, getMyPage);
 
 export default router;
