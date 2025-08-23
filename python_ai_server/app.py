@@ -48,9 +48,12 @@ async def recommend(body: RecommendRequest):
     # 3) 날씨(우선 Open-Meteo 폴백으로 확보)
     wx = await fetch_simple_weather(lat, lon, yyyymmdd, fcst_time)
     temperature_c = None
-    if wx.get("TMP") is not None:
-        try: temperature_c = float(wx["TMP"])
-        except: pass
+    tmp_value = wx.get("TMP")
+    if tmp_value is not None:
+        try:
+            temperature_c = float(tmp_value)
+        except (TypeError, ValueError):
+            pass
     condition = wx.get("COND") or "알수없음"
 
     # 4) 날씨 텍스트
