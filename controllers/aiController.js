@@ -7,7 +7,7 @@ export async function getRecommendations(req, res) {
   try {
     // 위치, 날짜, 시간 3가지 정보 받기
     const { location, date, time } = req.body;
-    const response = await axios.post('http://localhost:5000/recommend', { location, date, time });
+  const response = await axios.post('http://43.201.86.145:5000/recommend', { location, date, time });
     const result = response.data;
 
     // Firebase에 저장 (change me: 컬렉션/문서 구조는 실제에 맞게 수정)
