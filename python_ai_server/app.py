@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
-from langchain_logic import get_place_recommendations
+from recommendations.places import get_place_recommendations
 import os
 from dotenv import load_dotenv
 
