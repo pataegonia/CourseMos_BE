@@ -47,10 +47,11 @@ async def recommend(body: RecommendRequest):
     fcst = await fetch_vilage_fcst(nx, ny, yyyymmdd, fcst_time)
     condition = map_condition(fcst.get("SKY"), fcst.get("PTY"))
     temperature_c = None
-    if fcst.get("TMP") is not None:
+    tmp_value = fcst.get("TMP")
+    if tmp_value is not None:
         try:
-            temperature_c = float(fcst["TMP"])
-        except:
+            temperature_c = float(tmp_value)
+        except (TypeError, ValueError):
             pass
 
     # 5) OpenAI 프롬프트용 날씨 텍스트

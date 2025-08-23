@@ -166,7 +166,7 @@ def load_example_input() -> Dict[str, str]:
 
 # 메인 함수
 
-def get_place_recommendations(location: Optional[str] = None, date: Optional[str] = None, time_str: Optional[str] = None) -> Dict[str, Any]:
+def get_place_recommendations(location: Optional[str] = None, date: Optional[str] = None, time_str: Optional[str] = None, weather_text: Optional[str] = None) -> Dict[str, Any]:
     """
     Returns:
       {
@@ -180,7 +180,7 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
         time_str = example.get("time")
 
     system_prompt = (
-        "너는 한국어로만 답한다. 사용자의 현재 위치/날짜/시간을 반영해 '하루 안에 소화 가능한' 3개의 데이트 코스를 설계하는 로컬 가이드다. "
+        "너는 한국어로만 답한다. 사용자의 현재 위치/날짜/시간/날씨 정보를 반영해 '하루 안에 소화 가능한' 3개의 데이트 코스를 설계하는 로컬 가이드다. "
         "반드시 아래 스키마와 완전히 일치하는 JSON만 반환한다. 모든 필드명, 카테고리, 시간대 값은 반드시 한글로 작성한다. "
         "필드명: title, total_estimated_minutes, stops, name, desc, typical_duration_min, suggested_time_of_day, category (모두 한글로: '코스명', '총예상소요시간', '스톱', '장소명', '설명', '권장체류시간', '권장시간대', '카테고리')로 작성. "
         "카테고리 값은 반드시 아래 중 하나: 카페, 식당, 박물관, 공원, 야경, 바, 액티비티, 기타. 시간대 값은 반드시: 아침, 오후, 저녁, 밤. "
@@ -196,6 +196,7 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
     사용자의 현재 위치: {location}
     날짜: {date}
     현재 시간: {time_str}
+    현지 날씨: {weather_text if weather_text else '날씨 정보 없음'}
 
     요청:
     - 하루에 가능한 3개 코스를 설계
