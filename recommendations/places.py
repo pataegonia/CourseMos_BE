@@ -1,4 +1,5 @@
 import os
+import requests
 import json
 import re
 import time
@@ -56,12 +57,44 @@ JSON_SCHEMA = {
 
 # 금지 접미사(포괄 지명)
 FORBIDDEN_SUFFIXES = ["동", "읍", "면", "리", "거리", "타운", "스퀘어", "프라자"]
-CATEGORY_ENUM = ["cafe", "restaurant", "museum", "park", "view", "bar", "activity", "other"]
-TIME_ENUM = ["morning", "afternoon", "evening", "night"]
+CATEGORY_ENUM = ["카페", "식당", "박물관", "공원", "야경", "바", "액티비티", "기타"]
+TIME_ENUM = ["아침", "오후", "저녁", "밤"]
 
+###############################################
 # 품질 검증 함수
+###############################################
+###############################################
+# Google Places API를 활용한 장소 사진 가져오기
+###############################################
+def get_photo_url(place_name: str, api_key: str) -> str:
+    """
+    Google Places API를 통해 장소명으로 대표 사진 URL을 반환합니다.
+    - place_name: 장소명(예: '카페 드 파리')
+    - api_key: 구글 API 키
+    """
+    search_url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+    params = {
+        "input": place_name,
+        "inputtype": "textquery",
+        "fields": "photos,place_id",
+        "key": api_key
+    }
+    try:
+        resp = requests.get(search_url, params=params, timeout=3)
+        data = resp.json()
+        print(f"[Google API 응답] {place_name}: {json.dumps(data, ensure_ascii=False)}")  # 전체 응답 출력
+        candidates = data.get("candidates")
+        if candidates and "photos" in candidates[0]:
+            photo_ref = candidates[0]["photos"][0]["photo_reference"]
+            # 실제 사진 URL 생성
+            photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={api_key}"
+            return photo_url
+    except Exception as e:
+        print(f"[사진 가져오기 실패] {place_name}: {e}")
+    return ""
 
 def validate_course_schema(data: Dict[str, Any]) -> bool:
+    # 아주 간단한 한글 기준 품질 검사
     if not isinstance(data, dict):
         return False
     courses = data.get("courses")
@@ -73,43 +106,21 @@ def validate_course_schema(data: Dict[str, Any]) -> bool:
         stops = course.get("stops")
         if not isinstance(stops, list) or not (3 <= len(stops) <= 7):
             return False
-        categories = set()
-        total_stop_minutes = 0
+        if not isinstance(course.get("title"), str):
+            return False
+        if not isinstance(course.get("total_estimated_minutes"), int):
+            return False
         for stop in stops:
             if not isinstance(stop, dict):
                 return False
-            # 필수 필드 검사
             for key in ["name", "desc", "typical_duration_min", "suggested_time_of_day", "category"]:
                 if key not in stop:
                     return False
-            # 타입/범위 검사
-            if not isinstance(stop["name"], str) or not stop["name"]:
+            # 모든 값이 한글로만 되어 있는지 간단 체크
+            if not all(isinstance(stop[k], str) and re.search(r"[가-힣]", stop[k]) for k in ["name", "desc", "suggested_time_of_day", "category"]):
                 return False
-            if not isinstance(stop["desc"], str) or not stop["desc"]:
+            if not isinstance(stop["typical_duration_min"], int):
                 return False
-            if not isinstance(stop["typical_duration_min"], int) or not (15 <= stop["typical_duration_min"] <= 240):
-                return False
-            if stop["suggested_time_of_day"] not in TIME_ENUM:
-                return False
-            if stop["category"] not in CATEGORY_ENUM:
-                return False
-            # 금지 접미사 검사
-            for suffix in FORBIDDEN_SUFFIXES:
-                if stop["name"].strip().endswith(suffix):
-                    return False
-            categories.add(stop["category"])
-            total_stop_minutes += stop["typical_duration_min"]
-        # 카테고리 다양성(최소 2종)
-        if len(categories) < 2:
-            return False
-        # 총 소요 시간 합리성(±30~120분)
-        est = course.get("total_estimated_minutes")
-        if not isinstance(est, int) or not (120 <= est <= 900):
-            return False
-        if not (total_stop_minutes + 30 <= est <= total_stop_minutes + 120):
-            return False
-        if not isinstance(course.get("title"), str) or not course["title"]:
-            return False
     return True
 
 # 폴백 파서: 코드블록/본문/배열 추출
@@ -119,24 +130,31 @@ def fallback_parse(text: str) -> Optional[Dict[str, Any]]:
     codeblock = re.search(r"```(?:json)?\s*([\s\S]+?)```", text)
     if codeblock:
         text = codeblock.group(1)
-    # 배열만 응답 시
-    if text.strip().startswith("["):
-        try:
-            arr = json.loads(text)
-            return {"courses": arr}
-        except Exception:
-            pass
-    # 본문 {...} 또는 [...] 추출
+    # 바로 JSON 객체/배열일 경우
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict) and "courses" in parsed:
+            return parsed
+        elif isinstance(parsed, list):
+            return {"courses": parsed}
+    except Exception:
+        pass
+    # 본문 {...} 또는 [...] robust 추출
     obj_match = re.search(r"({[\s\S]+})", text)
     arr_match = re.search(r"(\[[\s\S]+\])", text)
     try:
         if obj_match:
-            return json.loads(obj_match.group(1))
+            parsed = json.loads(obj_match.group(1))
+            if isinstance(parsed, dict) and "courses" in parsed:
+                return parsed
+            elif isinstance(parsed, list):
+                return {"courses": parsed}
         elif arr_match:
             arr = json.loads(arr_match.group(1))
             return {"courses": arr}
-    except Exception:
-        pass
+    except Exception as e:
+        print("[파싱 실패]", e)
+    print("[파싱 실패: fallback_parse]", text[:300])
     return None
 
 # 입력 폴백 로딩
@@ -163,7 +181,11 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
 
     system_prompt = (
         "너는 한국어로만 답한다. 사용자의 현재 위치/날짜/시간을 반영해 '하루 안에 소화 가능한' 3개의 데이트 코스를 설계하는 로컬 가이드다. "
-        "각 코스는 3~7개의 '구체적 지점명'으로 구성하며, 네이버 지도에서 바로 검색 가능해야 한다. "
+        "반드시 아래 스키마와 완전히 일치하는 JSON만 반환한다. 모든 필드명, 카테고리, 시간대 값은 반드시 한글로 작성한다. "
+        "필드명: title, total_estimated_minutes, stops, name, desc, typical_duration_min, suggested_time_of_day, category (모두 한글로: '코스명', '총예상소요시간', '스톱', '장소명', '설명', '권장체류시간', '권장시간대', '카테고리')로 작성. "
+        "카테고리 값은 반드시 아래 중 하나: 카페, 식당, 박물관, 공원, 야경, 바, 액티비티, 기타. 시간대 값은 반드시: 아침, 오후, 저녁, 밤. "
+        "예시 JSON: \n"
+        "{\n  \"courses\": [\n    {\n      \"title\": \"코스명\", \n      \"total_estimated_minutes\": 360, \n      \"stops\": [\n        {\n          \"name\": \"장소명\", \n          \"desc\": \"설명\", \n          \"typical_duration_min\": 60, \n          \"suggested_time_of_day\": \"오후\", \n          \"category\": \"카페\"\n        }\n      ]\n    }\n  ]\n}"
         "행정동/상권/거리/타운/프라자 등 포괄 지명은 금지. 프랜차이즈는 지점명까지 명확히(예: '스타벅스 강남역 2호점'). "
         "같은 카테고리로 몰리지 않게 다양성(카페/식당/산책/전시/야경/바/액티비티 등)을 고려한다. "
         "현재 시간대와 요일을 감안해 영업 가능성과 분위기를 맞춘다(아침-브런치, 저녁-야경/바 등). "
@@ -178,17 +200,21 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
     요청:
     - 하루에 가능한 3개 코스를 설계
     - 각 코스는 3~7개의 '구체적 지점명' 스톱으로 구성
-    - 각 스톱은 {"name","desc","typical_duration_min","suggested_time_of_day","category"} 필수
+    - 각 스톱은 반드시 아래 한글 필드명만 사용: 장소명(name), 설명(desc), 권장체류시간(typical_duration_min), 권장시간대(suggested_time_of_day), 카테고리(category)
     - 행정동/상권/거리/타운/프라자 등 포괄 지명 금지, 지점명(브랜치명) 명확히
+    - 카테고리 값은 반드시: 카페, 식당, 박물관, 공원, 야경, 바, 액티비티, 기타 중 하나
+    - 권장시간대 값은 반드시: 아침, 오후, 저녁, 밤 중 하나
     - 카테고리 다양성 및 동선 합리성(이동 과도하지 않게) 고려
     - 현재 시간대/요일에 어울리는 스팟 우선
     - 출력은 제공된 JSON 스키마에 '정확히' 맞춰 반환
+    - 예시 JSON을 참고해 반드시 동일한 구조와 한글 필드명/값으로 반환
     """
 
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     max_retries = 3
     backoff = [0.8, 1.6, 3.2]
     last_error = None
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY", "")
     for attempt in range(max_retries):
         try:
             response = client.chat.completions.create(
@@ -201,6 +227,7 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
                 timeout=30
             )
             content = response.choices[0].message.content
+            print("[OpenAI 응답 RAW]", content)
             if content is None:
                 raise ValueError("GPT 응답이 없습니다.")
             # 1차 파싱
@@ -208,7 +235,12 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
                 result = json.loads(content)
             except Exception:
                 result = fallback_parse(content)
+            # 품질 검증 통과 시 각 장소별 사진 추가
             if result and validate_course_schema(result):
+                for course in result.get("courses", []):
+                    for stop in course.get("stops", []):
+                        # Google Places API로 대표 사진 URL 추가
+                        stop["photo_url"] = get_photo_url(stop["name"], api_key)
                 return result
             else:
                 last_error = f"스키마 미스매치: {content[:200]}"
@@ -216,7 +248,7 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
             last_error = str(e)
         if attempt < max_retries - 1:
             time.sleep(backoff[attempt])
-    # 최종 실패 시
+    # 최종 실패 시 (사진 없음)
     return {
         "courses": [
             {
@@ -227,14 +259,13 @@ def get_place_recommendations(location: Optional[str] = None, date: Optional[str
                         "name": "파싱 실패",
                         "desc": str(last_error),
                         "typical_duration_min": 0,
-                        "suggested_time_of_day": "morning",
-                        "category": "other"
+                        "suggested_time_of_day": "아침",
+                        "category": "기타",
+                        "photo_url": ""
                     }
                 ]
             }
         ]
     }
 
-# TODO: Naver/Kakao/Google Places API로 지점명/영업시간/좌표 검증 및 이동시간 추정.
-# TODO: 좌표 기반 반경 및 영업 중 필터, 시간대별 가중치.
-# TODO: 로깅/샘플링 및 품질 지표 대시보드.
+

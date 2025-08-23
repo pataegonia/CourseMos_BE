@@ -2,6 +2,8 @@ import os
 import sys
 import pytest
 import json
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from recommendations.places import get_place_recommendations, validate_course_schema, fallback_parse
 
@@ -18,8 +20,8 @@ def test_schema_valid():
             assert isinstance(stop["name"], str)
             assert isinstance(stop["desc"], str)
             assert isinstance(stop["typical_duration_min"], int)
-            assert stop["suggested_time_of_day"] in ["morning", "afternoon", "evening", "night"]
-            assert stop["category"] in ["cafe", "restaurant", "museum", "park", "view", "bar", "activity", "other"]
+            assert stop["suggested_time_of_day"] in ["아침", "오후", "저녁", "밤"]
+            assert stop["category"] in ["카페", "식당", "박물관", "공원", "야경", "바", "액티비티", "기타"]
 
 def test_forbidden_suffix():
     bad = {
