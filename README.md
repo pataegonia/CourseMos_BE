@@ -168,17 +168,6 @@ Content-Type: application/json
 
 ---
 
-## 📄 라이선스
-
-MIT License
-
----
-
-## 💬 문의
-
-- [이슈 등록](https://github.com/pataegonia/CourseMos_BE/issues)
-- 이메일: your@email.com
-
 ---
 
 > **CourseMos_BE** – AI와 함께하는 데이트코스의 모든 것!
